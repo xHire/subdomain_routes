@@ -4,7 +4,7 @@ module SubdomainRoutes
       include SplitHost
       
       def self.included(base)
-        [ :extract_request_environment, :add_route ].each { |method| base.alias_method_chain method, :subdomains }
+        [ :extract_request_environment, :add_route, :raise_named_route_error ].each { |method| base.alias_method_chain method, :subdomains }
       end
       
       def extract_request_environment_with_subdomains(request)
@@ -20,6 +20,20 @@ module SubdomainRoutes
           options[:requirements][:subdomains] = subdomains
         end
         with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
+      end
+
+      def raise_named_route_error_with_subdomains(options, named_route, named_route_name)
+        unless named_route.conditions[:subdomains].is_a?(Symbol)
+          raise_named_route_error_without_subdomains(options, named_route, named_route_name)
+        else
+          begin
+            options.delete(named_route.conditions[:subdomains])
+            raise_named_route_error_without_subdomains(options, named_route, named_route_name)
+          rescue ActionController::RoutingError => e
+            e.message << " You may also need to specify #{named_route.conditions[:subdomains].inspect} for the subdomain."
+            raise e
+          end
+        end
       end
       
       def reserved_subdomains
@@ -53,7 +67,7 @@ module SubdomainRoutes
                   
       def segment_keys_with_subdomains
         result = segment_keys_without_subdomains
-        result.unshift(:subdomain) if conditions[:subdomains].is_a? Symbol
+        result.unshift(conditions[:subdomains]) if conditions[:subdomains].is_a? Symbol
         result
       end
       

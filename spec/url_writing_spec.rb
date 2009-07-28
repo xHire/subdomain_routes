@@ -168,8 +168,7 @@ describe "URL writing" do
       @boston = City.new
       @boston.stub!(:new_record?).and_return(false)
       @boston.stub!(:to_param).and_return("boston")
-      @url_options = { :controller => "city/events", :action => "index", :subdomains => :city_id, :city_id => @boston.to_param.to_s, :subdomain => @boston.to_param.to_s }
-      # TODO: get rid of the need for including :subdomain option in lieu of a :city_id option
+      @url_options = { :controller => "city/events", :action => "index", :subdomains => :city_id, :city_id => @boston }
       @path_options = @url_options.merge(:only_path => true)
     end
 
@@ -198,8 +197,8 @@ describe "URL writing" do
       with_host "www.example.com" do
         lambda {  city_events_url(@newyork) }.should raise_error(ActionController::RoutingError)
         lambda { city_events_path(@newyork) }.should raise_error(ActionController::RoutingError)
-        lambda {   url_for(@url_options.merge(:subdomain => @newyork.to_param)) }.should raise_error(ActionController::RoutingError)
-        lambda {  url_for(@path_options.merge(:subdomain => @newyork.to_param)) }.should raise_error(ActionController::RoutingError)
+        lambda {  url_for(@url_options.merge(:city_id => @newyork)) }.should raise_error(ActionController::RoutingError)
+        lambda { url_for(@path_options.merge(:city_id => @newyork)) }.should raise_error(ActionController::RoutingError)
       end
     end
       
@@ -210,10 +209,11 @@ describe "URL writing" do
       end
     end
     
-    it "should raise a routing error if no subdomain object is supplied" do
+    it "should raise a routing error if no subdomain object is supplied to the named route" do
       with_host "www.example.com" do
-        lambda { city_events_url }.should raise_error(ActionController::RoutingError)
-        # TODO url_for test?
+        [ lambda { city_events_url }, lambda { city_event_url("id") } ].each do |lamb|
+          lamb.should raise_error(ActionController::RoutingError) { |e| e.message.should include ":city_id" }
+        end
       end
     end
   end
