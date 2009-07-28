@@ -168,7 +168,8 @@ describe "URL writing" do
       @boston = City.new
       @boston.stub!(:new_record?).and_return(false)
       @boston.stub!(:to_param).and_return("boston")
-      @url_options = { :controller => "city/events", :action => "index", :subdomains => :city_id, :subdomain => @boston.to_param }
+      @url_options = { :controller => "city/events", :action => "index", :subdomains => :city_id, :city_id => @boston.to_param.to_s, :subdomain => @boston.to_param.to_s }
+      # TODO: get rid of the need for including :subdomain option in lieu of a :city_id option
       @path_options = @url_options.merge(:only_path => true)
     end
 
@@ -206,6 +207,13 @@ describe "URL writing" do
       with_host "www.example.com" do
          city_events_url(@boston, :subdomain => :canberra).should == "http://boston.example.com/events"
         city_events_path(@boston, :subdomain => :canberra).should == "http://boston.example.com/events"
+      end
+    end
+    
+    it "should raise a routing error if no subdomain object is supplied" do
+      with_host "www.example.com" do
+        lambda { city_events_url }.should raise_error(ActionController::RoutingError)
+        # TODO url_for test?
       end
     end
   end

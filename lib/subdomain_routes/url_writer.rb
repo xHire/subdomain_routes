@@ -12,12 +12,14 @@ module SubdomainRoutes
     def rewrite_subdomain_options(options, host)
       if subdomains = options[:subdomains]
         old_subdomain, domain = split_host(host)
-        new_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_param.to_s.downcase : old_subdomain
+        # new_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_param.to_s.downcase : old_subdomain
+        options_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_param.to_s.downcase : nil
+        new_subdomain = options_subdomain || old_subdomain
         begin
           case subdomains
           when Array
             unless subdomains.include? new_subdomain
-              if subdomains.size > 1 || options.has_key?(:subdomain)
+              if subdomains.size > 1 || options_subdomain
                 raise ActionController::RoutingError, "expected subdomain in #{subdomains.inspect}, instead got subdomain #{new_subdomain.inspect}"
               else
                 new_subdomain = subdomains.first
@@ -26,7 +28,9 @@ module SubdomainRoutes
           when Symbol
             unless new_subdomain.blank? || SubdomainRoutes.valid_subdomain?(new_subdomain)
               raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
-            end            
+            end
+            # options[subdomains] = new_subdomain
+            options[subdomains] ||= options_subdomain
           end            
         rescue ActionController::RoutingError => e
           raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (#{e.message})"
@@ -65,7 +69,7 @@ module SubdomainRoutes
       base::RESERVED_OPTIONS << :subdomain # untested!
     end
     
-    def rewrite_with_subdomains(options)      
+    def rewrite_with_subdomains(options)
       host = options[:host] || @request.host
       if options[:subdomains] && host.blank?
         raise HostNotSupplied, "Missing host to link to!"

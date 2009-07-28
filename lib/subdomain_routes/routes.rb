@@ -29,7 +29,7 @@ module SubdomainRoutes
   
     module Route
       def self.included(base)
-        [ :recognition_conditions, :segment_keys, :recognition_extraction ].each { |method| base.alias_method_chain method, :subdomains }
+        [ :recognition_conditions, :generation_extraction, :segment_keys, :recognition_extraction ].each { |method| base.alias_method_chain method, :subdomains }
       end
       
       def recognition_conditions_with_subdomains
@@ -43,6 +43,14 @@ module SubdomainRoutes
         result
       end
       
+      def generation_extraction_with_subdomains
+        results = [ generation_extraction_without_subdomains ]
+        if conditions[:subdomains].is_a?(Symbol)
+          results << "return [nil,nil] unless hash.delete(#{conditions[:subdomains].inspect})"
+        end
+        results.compact * "\n"
+      end
+                  
       def segment_keys_with_subdomains
         result = segment_keys_without_subdomains
         result.unshift(:subdomain) if conditions[:subdomains].is_a? Symbol
