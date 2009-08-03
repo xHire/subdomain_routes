@@ -71,3 +71,15 @@ ActiveRecord::Base.class_eval do
     columns << ActiveRecord::ConnectionAdapters::Column.new(name.to_s, default, sql_type, null)
   end
 end
+
+class RoutingTestClass < ActionController::TestCase
+end
+
+def testing_routing(&block)
+  result = Test::Unit::TestResult.new
+  RoutingTestClass.send :define_method, :test do
+    instance_eval(&block)
+  end
+  RoutingTestClass.new(:test).run(result) {}
+  result
+end
