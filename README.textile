@@ -21,6 +21,8 @@ In your Rails app, make sure to specify the gem dependency in environment.rb:
 config.gem "mholling-subdomain_routes", :lib => "subdomain_routes", :source => "http://gems.github.com"
 </pre>
 
+[ *UPDATE:* You can also install the gem as a plugin: <code>script/plugin install git://github.com/mholling/subdomain_routes.git</code> ]
+
 (Note that the SubdomainRoutes gem requires Rails 2.2 or later to run since it changes <code>ActionController::Resources::INHERITABLE_OPTIONS</code>. If you're on an older version of Rails, you need to get with the program. ;)
 
 Finally, you'll probably want to configure your session to work across all your subdomains. You can do this in your environment files:
@@ -32,6 +34,8 @@ config.action_controller.session[:session_domain] = "yourdomain.local" # or what
 # in environment/production.rb:
 config.action_controller.session[:session_domain] = "yourdomain.com" # or whatever
 </pre>
+
+[ *UPDATE*: If you're using your domain without any subdomain, you may need to set the domain to ".yourdomain.com" (with leading period). Also, you may first need to set <code>config.action_controller.session ||= {}</code> in your environment file, in case the session configuration variable has not already been set. ]
 
 h2. Mapping a Single Subdomain
 
