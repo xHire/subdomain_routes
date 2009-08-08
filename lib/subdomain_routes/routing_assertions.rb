@@ -1,11 +1,10 @@
 module SubdomainRoutes
   module RoutingAssertions
     def self.included(base)
-      [ :assert_recognizes, :recognized_request_for ].each { |method| base.alias_method_chain method, :subdomains }
+      [ :assert_recognizes, :recognized_request_for, :assert_generates ].each { |method| base.alias_method_chain method, :subdomains }
     end
         
     def assert_recognizes_with_subdomains(expected_options, path, extras={}, message=nil)
-      # raise path.inspect
       if path.is_a? Hash
         request_method = path[:method]
         host           = path[:host]
@@ -27,7 +26,6 @@ module SubdomainRoutes
         msg = build_message(message, "The recognized options <?> did not match <?>, difference: <?>",
             request.path_parameters, expected_options, expected_options.diff(request.path_parameters))
         assert_block(msg) { request.path_parameters == expected_options }
-
       end
     end
 
@@ -43,6 +41,16 @@ module SubdomainRoutes
       request.host = host if host
       ActionController::Routing::Routes.recognize(request)
       request
+    end
+    
+    include SubdomainRoutes::RewriteSubdomainOptions
+    def assert_generates_with_subdomains(expected_path, options, defaults={}, extras = {}, message=nil)
+      host_options = options.dup
+      rewrite_subdomain_options(host_options, expected_path[:host])
+      host_options.slice!(:only_path, :host)
+      if host_options[:only_path] == false
+        expected_path[:path] = 
+      assert_generates_without_subdomains(expected_path[:path], options, defaults, extras, message)
     end
   end
 end

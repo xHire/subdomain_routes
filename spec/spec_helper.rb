@@ -77,7 +77,9 @@ end
 
 def testing_routing(&block)
   result = Test::Unit::TestResult.new
+  spec = self
   RoutingTestClass.send :define_method, :test do
+    copy_instance_variables_from(spec)
     instance_eval(&block)
   end
   RoutingTestClass.new(:test).run(result) {}
