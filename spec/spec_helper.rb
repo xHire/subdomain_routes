@@ -9,17 +9,20 @@ require 'action_mailer' # only required for testing optional features, not requi
 
 require 'subdomain_routes'
 
+require 'action_controller/test_process'
+require 'action_view/test_case'
+require 'test_unit_matcher'
+
+ActiveSupport::OptionMerger.send(:define_method, :options) { @options }
+
+
 Spec::Runner.configure do |config|
   config.before(:each) do
     ActionController::Routing::Routes.clear!
     SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
   end
+  config.include(SubdomainRoutes::TestUnitMatcher)
 end
-
-require 'action_controller/test_process'
-require 'action_view/test_case'
-
-ActiveSupport::OptionMerger.send(:define_method, :options) { @options }
 
 def map_subdomain(*subdomains, &block)
   ActionController::Routing::Routes.draw do |map|
@@ -32,28 +35,24 @@ def recognize_path(request)
 end
 
 def in_controller_with_host(host, &block)
-  variables = instance_variables.inject([]) do |array, name|
-    array << [ name, instance_variable_get(name) ]
-  end
+  spec = self
   Class.new(ActionView::TestCase::TestController) do
     include Spec::Matchers
   end.new.instance_eval do
     request.host = host
-    variables.each { |name, value| instance_variable_set(name, value) }
+    copy_instance_variables_from(spec)
     instance_eval(&block)
   end
 end
 
 def in_object_with_host(host, &block)
-  variables = instance_variables.inject([]) do |array, name|
-    array << [ name, instance_variable_get(name) ]
-  end
+  spec = self
   Class.new do
     include Spec::Matchers
     include ActionController::UrlWriter
   end.new.instance_eval do
     self.class.default_url_options = { :host => host }
-    variables.each { |name, value| instance_variable_set(name, value) }
+    copy_instance_variables_from(spec)
     instance_eval(&block)
   end
 end
@@ -70,18 +69,4 @@ ActiveRecord::Base.class_eval do
   def self.column(name, sql_type = nil, default = nil, null = true)
     columns << ActiveRecord::ConnectionAdapters::Column.new(name.to_s, default, sql_type, null)
   end
-end
-
-class RoutingTestClass < ActionController::TestCase
-end
-
-def testing_routing(&block)
-  result = Test::Unit::TestResult.new
-  spec = self
-  RoutingTestClass.send :define_method, :test do
-    copy_instance_variables_from(spec)
-    instance_eval(&block)
-  end
-  RoutingTestClass.new(:test).run(result) {}
-  result
 end
