@@ -27,18 +27,28 @@ module SubdomainRoutes
         assert_block(msg) { request.path_parameters == expected_options }
       end
     end
-    
-    def assert_generates_with_host(expected_path, host, options, defaults={}, extras = {}, message=nil)
+
+    def assert_generates_with_host(expected_path, options, host, defaults={}, extras = {}, message=nil)
+      if expected_path.is_a? Hash
+        expected_host = expected_path[:host]
+        expected_path = expected_path[:path]
+      else
+        expected_host = nil
+      end
       host_options = options.dup
       rewrite_subdomain_options(host_options, host)
       if host_options[:only_path] == false
-        expected_path.slice!(/^https?:\/\//)
-        msg = build_message(message, "The subdomain route for <?> changed the host to <?> but this did not match the URL <?>", options, host_options[:host], expected_path)
-        assert_block(msg) { expected_path.slice!(host_options[:host]) }
+        msg = expected_host ? 
+          build_message(message, "The route for <?> changed the host to <?> but this did not match expected host <?>", options, host_options[:host], expected_host) :
+          build_message(message, "The route for <?> changed the host to <?> but the host was not expected to change", options, host_options[:host])
+        assert_block(msg) { expected_host == host_options[:host] }
+      else
+        msg = build_message(message, "The route for <?> was expected to change the host to <?> but did not change the host", options, expected_host)
+        assert_block(msg) { expected_host == nil }
       end
       assert_generates(expected_path, options, defaults, extras, message)
     end
-
+    
     private
 
     def recognized_request_for_with_host(path, host, request_method = nil)

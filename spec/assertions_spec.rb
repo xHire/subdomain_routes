@@ -27,25 +27,25 @@ describe "routing assertions" do
 
   context "for generation" do
     it "should correctly succeed with :host and :path options and a subdomain route which changes the subdomain" do
-      test = lambda { assert_generates_with_host("http://admin.example.com/users", "www.example.com", @options) }
+      test = lambda { assert_generates_with_host({ :path => "/users", :host => "admin.example.com" }, @options, "www.example.com") }
       test.should_not have_errors
       test.should_not fail
     end
   
     it "should correctly fail with :host and :path options and a subdomain route which changes the subdomain" do
-      test = lambda { assert_generates_with_host("http://admin.example.com/users", "admin.example.com", @options) }
+      test = lambda { assert_generates_with_host({ :path => "/users", :host => "admin.example.com" }, @options, "admin.example.com") }
       test.should_not have_errors
       test.should fail
     end
       
     it "should correctly succeed with :host and :path options and a subdomain route which doesn't change the subdomain" do
-      test = lambda { assert_generates_with_host("/users", "admin.example.com", @options) }
+      test = lambda { assert_generates_with_host("/users", @options, "admin.example.com") }
       test.should_not have_errors
       test.should_not fail
     end
     
     it "should correctly fail with :host and :path options and a subdomain route which doesn't change the subdomain" do
-      test = lambda { assert_generates_with_host("/users", "www.example.com", @options) }
+      test = lambda { assert_generates_with_host("/users", @options, "www.example.com") }
       test.should_not have_errors
       test.should fail
     end
