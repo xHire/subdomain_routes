@@ -212,7 +212,7 @@ describe "URL writing" do
     it "should raise a routing error if no subdomain object is supplied to the named route" do
       with_host "www.example.com" do
         [ lambda { city_events_url }, lambda { city_event_url("id") } ].each do |lamb|
-          lamb.should raise_error(ActionController::RoutingError) { |e| e.message.should include ":city_id" }
+          lamb.should raise_error(ActionController::RoutingError) { |e| e.message.should include(":city_id") }
         end
       end
     end
