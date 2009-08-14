@@ -148,5 +148,21 @@ describe "subdomain route mapping" do
     it "should prefix the model name to named routes" do
       map_subdomain(:model => :city) { |city| city.options[:name_prefix].should == "city_" }
     end
+    
+    it "should instead set a namespace to the name if specified" do
+      map_subdomain(:model => :city, :name => :something) { |map| map.options[:namespace].should == "something/" }
+    end
+
+    it "should instead prefix the name to named routes if specified" do
+      map_subdomain(:model => :city, :name => :something) { |map| map.options[:name_prefix].should == "something_" }
+    end
+
+    it "should not set a namespace if name is specified as nil" do
+      map_subdomain(:model => :city, :name => nil) { |map| map.options[:namespace].should be_nil }
+    end
+
+    it "should not set a named route prefix if name is specified as nil" do
+      map_subdomain(:model => :city, :name => nil) { |map| map.options[:name_prefix].should be_nil }
+    end
   end
 end

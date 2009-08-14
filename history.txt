@@ -8,4 +8,6 @@ Version 0.2.4
   if you're into that sort of thing.
 * Override ActionController::Routing::Route#significant_keys to include the subdomain
   option in the case of model-based subdomain routes.
+* Added ability to override default namespace and name prefix for model-based subdomain
+  routes by passing :name option to the map.subdomain call.
 * Updated README to describe how to test with subdomain routes.

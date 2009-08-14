@@ -1,9 +1,6 @@
 require 'test/unit/testresult'
 require 'spec_helper'
 
-#TODO: :name => nil option does not work for model-based subdomains!
-#TODO: :change routes_spec.rb to mapping_spec.rb?
-
 class HomesController < ActionController::Base
 end
 
