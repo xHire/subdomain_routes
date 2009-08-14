@@ -43,18 +43,18 @@ module SubdomainRoutes
   
     module Route
       def self.included(base)
-        [ :recognition_conditions, :generation_extraction, :segment_keys, :recognition_extraction ].each { |method| base.alias_method_chain method, :subdomains }
+        [ :recognition_conditions, :generation_extraction, :segment_keys, :significant_keys, :recognition_extraction ].each { |method| base.alias_method_chain method, :subdomains }
       end
       
       def recognition_conditions_with_subdomains
-        result = recognition_conditions_without_subdomains
-        case conditions[:subdomains]
-        when Array
-          result << "conditions[:subdomains].include?(env[:subdomain])"
-        when Symbol
-          result << "(subdomain = env[:subdomain] unless env[:subdomain].blank?)"
+        returning recognition_conditions_without_subdomains do |result|
+          case conditions[:subdomains]
+          when Array
+            result << "conditions[:subdomains].include?(env[:subdomain])"
+          when Symbol
+            result << "(subdomain = env[:subdomain] unless env[:subdomain].blank?)"
+          end
         end
-        result
       end
       
       def generation_extraction_with_subdomains
@@ -66,15 +66,24 @@ module SubdomainRoutes
       end
                   
       def segment_keys_with_subdomains
-        result = segment_keys_without_subdomains
-        result.unshift(conditions[:subdomains]) if conditions[:subdomains].is_a? Symbol
-        result
+        returning segment_keys_without_subdomains do |result|
+          result.unshift(conditions[:subdomains]) if conditions[:subdomains].is_a? Symbol
+        end
+      end
+      
+      def significant_keys_with_subdomains
+        returning significant_keys_without_subdomains do |result|
+          if conditions[:subdomains].is_a? Symbol
+            result << conditions[:subdomains]
+            result.uniq!
+          end
+        end
       end
       
       def recognition_extraction_with_subdomains
-        result = recognition_extraction_without_subdomains
-        result.unshift "\nparams[#{conditions[:subdomains].inspect}] = subdomain\n" if conditions[:subdomains].is_a? Symbol
-        result
+        returning recognition_extraction_without_subdomains do |result|
+          result.unshift "\nparams[#{conditions[:subdomains].inspect}] = subdomain\n" if conditions[:subdomains].is_a? Symbol
+        end
       end
       
       def reserved_subdomains

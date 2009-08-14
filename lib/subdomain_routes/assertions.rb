@@ -35,20 +35,20 @@ module SubdomainRoutes
       else
         expected_host = nil
       end
-      host_options = options.dup
-      rewrite_subdomain_options(host_options, host)
-      if host_options[:only_path] == false
+      rewrite_subdomain_options(options, host)
+      if options.delete(:only_path) == false
+        generated_host = options.delete(:host)
         msg = expected_host ? 
-          build_message(message, "The route for <?> changed the host to <?> but this did not match expected host <?>", options, host_options[:host], expected_host) :
-          build_message(message, "The route for <?> changed the host to <?> but the host was not expected to change", options, host_options[:host])
-        assert_block(msg) { expected_host == host_options[:host] }
+          build_message(message, "The route for <?> changed the host to <?> but this did not match expected host <?>", options, generated_host, expected_host) :
+          build_message(message, "The route for <?> changed the host to <?> but the host was not expected to change", options, generated_host)
+        assert_block(msg) { expected_host == generated_host }
       else
         msg = build_message(message, "The route for <?> was expected to change the host to <?> but did not change the host", options, expected_host)
         assert_block(msg) { expected_host == nil }
       end
       assert_generates(expected_path, options, defaults, extras, message)
     end
-    
+
     private
 
     def recognized_request_for_with_host(path, host, request_method = nil)

@@ -3,7 +3,7 @@ module SubdomainRoutes
     module RouteSet
       module Mapper
         def subdomain(*subdomains, &block)
-          options = subdomains.extract_options!
+          options = subdomains.extract_options!.dup
           if subdomains.empty?
             if model = options.delete(:model)
               raise ArgumentError, "Invalid model name" if model.blank?

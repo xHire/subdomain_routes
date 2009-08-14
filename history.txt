@@ -6,4 +6,6 @@ Version 0.2.4
 * Added #assert_recognizes_with_host and #assert_generates_with_host methods to
   ActionController::Assertions::RoutingAssertions, allowing testing of subdomain routes
   if you're into that sort of thing.
+* Override ActionController::Routing::Route#significant_keys to include the subdomain
+  option in the case of model-based subdomain routes.
 * Updated README to describe how to test with subdomain routes.
