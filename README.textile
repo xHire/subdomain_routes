@@ -288,5 +288,134 @@ If you're using model-based subdomain routes (covered next), you may want to use
 # Use a "proxy.pac":http://en.wikipedia.org/wiki/Proxy.pac file in your browser so that it proxies _*.reviews.local_ to localhost. How to do this will depend on the browser you're using.
 # Set up a local DNS server with an A record for the domain. This may be a bit involved.
 
+h2. Testing with Subdomain Routes
+
+Testing routes and controllers with the SubdomainRoutes gem may require a little extra work. Here's a simple <code>routes.rb</code> as an example:
+
+<pre>
+map.subdomain :admin do |admin|
+  admin.resources :users
+end
+
+map.subdomain :model => :city do |city|
+  city.resources :reviews, :only => [ :index, :show ]
+end
+</pre>
+
+(This connects a fixed _admin_ subdomain to a <code>Admin::UsersController</code>, and a model-based _city_ subdomain to a <code>City::ReviewsController</code>.)
+
+h2. Testing Controllers
+
+A simple test for the <code>Admin::UsersController#show</code> action would go along these lines:
+
+<pre>
+class Admin::UsersControllerTest < ActionController::TestCase
+  test "show action" do
+    get :show, :id => "1", :subdomains => [ "admin" ]
+    assert_response :success # or whatever
+  end
+end
+</pre>
+
+Notice the <code>:subdomains => [ "admin" ]</code> in the hash passed to the <code>get</code> method. This is the additional requirement for testing controller actions which lie under a subdomain route. Your tests won't work without it. The same applies for <code>post</code>, <code>put</code> and <code>delete</code>.
+
+(For testing the model-based subdomain routes, <code>:subdomains => :city_id</code> and <code>:city_id => "..."</code> would be added to the route's options hash. Check the specs for more examples, if you need them.)
+
+It's a little bit ugly (and not too DRY) to have to list the subdomains for the route in the test. Want to change the actual subdomains you are using? You'll have to change your tests as well. But that's the way it goes. (One way to avoid this brittleness, at least, would be to assign the subdomains to a constant and use the constant in your routes and tests.)
+
+It's easy to figure out what <code>:subdomain</code> option you should pass. Just look it up in your routes by typing <code>rake routes</code> at the console:
+
+<pre>
+    admin_users GET    /users(.:format)          {:action=>"index", :subdomains=>["admin"], :controller=>"admin/users"}
+                POST   /users(.:format)          {:action=>"create", :subdomains=>["admin"], :controller=>"admin/users"}
+ new_admin_user GET    /users/new(.:format)      {:action=>"new", :subdomains=>["admin"], :controller=>"admin/users"}
+edit_admin_user GET    /users/:id/edit(.:format) {:action=>"edit", :subdomains=>["admin"], :controller=>"admin/users"}
+     admin_user GET    /users/:id(.:format)      {:action=>"show", :subdomains=>["admin"], :controller=>"admin/users"}
+                PUT    /users/:id(.:format)      {:action=>"update", :subdomains=>["admin"], :controller=>"admin/users"}
+                DELETE /users/:id(.:format)      {:action=>"destroy", :subdomains=>["admin"], :controller=>"admin/users"}
+   city_reviews GET    /reviews(.:format)        {:action=>"index", :subdomains=>:city_id, :controller=>"city/reviews"}
+    city_review GET    /reviews/:id(.:format)    {:action=>"show", :subdomains=>:city_id, :controller=>"city/reviews"}
+</pre>
+
+The <code>:subdomain</code> option you need to use is listed right there in the right-most column of each route.
+
+h2. Testing Subdomain Routes
+
+An underlying assumption in the Rails routing code is that the _path_ is all that's needed to specify an URL, since the host is assumed to be fixed and irrelevant. In some parts of the routing assertions code, this assumption is fairly tightly entangled in the code. Obviously, for subdomain routes, it's an invalid assumption.
+
+Augmenting Rails' <code>assert_generates</code> and <code>assert_recognizes</code> methods to allow for a changeable host is not really a practical or sensible option. Instead, SubdomainRoutes adds some new assertions specifically for testing subdomain routes.
+
+h3. Testing Recognition
+
+The signature for Rails' traditional <code>assert_recognizes</code> method looks like this:
+
+<pre>
+def assert_recognizes(expected_options, path, extras={}, message=nil)
+</pre>
+
+The <code>expected_options</code> path is options hash describing the route that should be recognised (always including <code>:controller</code> and <code>:action</code>, as well as any other parameters that the route might produce). The <code>path</code> can either be a string representing the path, or a hash with <code>:path</code> and <code>:method</code> values (if you need to specify an HTTP method other than GET).
+
+For <code>assert_recognizes_with_host</code> the same arguments are kept, since the <code>:host</code> can be passed as another option in the <code>path</code> hash. The <code>:host</code> option represents what host should be set in the <code>TestRequest</code> that's used to recognise the path. (Unlike traditional routes, the subdomain, and hence the host, is required for recognition of the route.)
+
+So a typical passing recognition test for the user index route would be:
+
+<pre>
+test "admin_users route recognition" do
+  assert_recognizes_with_host(
+    { :controller => "admin/users", :action => "index", :subdomains => [ "admin" ] },
+    { :path => "/users", :host => "admin.example.com" })
+end
+</pre>
+
+Notice the correct subdomain for this route is specified in the host. Note also the annoying <code>:subdomains</code> value in the first options hash. It needs to be there as well, to specify the route.
+
+h3. Testing Generation
+
+Testing route generation is a little more involved. The Rails assertion is as follows:
+
+<pre>
+def assert_generates(expected_path, options, defaults={}, extras={}, message=nil)
+</pre>
+
+This method asserts that <code>expected_path</code> (a string) is the path generated by the route <code>options</code>. But with subdomain routes, the generated route may also depend on the current host - if the subdomain for the route is different than the current host, the host will be forced to the new subdomain.
+
+To allow testing of this behaviour, the <code>assert_generates_with_host</code> method is introduced. This assertion allows you to specify the current host, as well as the host that the new route should have (if different):
+
+<pre>
+def assert_generates_with_host(expected_path, options, host, defaults={}, extras={}, message=nil)
+</pre>
+
+Notice the additional third argument, <code>host</code>, which you should set to the current host (i.e. the host under which the route is being generated).
+
+Now to test an example route. First, test the case where the host doesn't change:
+
+<pre>
+test "admin_users route generation for the same subdomain" do
+  assert_generates_with_host(
+    "/users",
+    { :controller => "admin/users", :action => "index", :subdomains => [ "admin" ] },
+    "admin.example.com")
+end
+</pre>
+
+The assertion in this test is saying that, for _admin.example.com_, the index route should generate <code>"/users"</code> as the path, and not change the host. The test passes as this is expected behaviour.
+
+The second test case covers the case of generating the route from a host with a different subdomain:
+
+<pre>
+test "admin_users route generation for a different subdomain" do
+  assert_generates_with_host(
+    { :path => "/users", :host => "admin.example.com" },
+    { :controller => "admin/users", :action => "index", :subdomains => [ "admin" ] },
+    "www.example.com")
+end
+</pre>
+
+Here the usage diverges from <code>assert_generates</code>: instead of passing a string as the expected path, a hash is passed. As with <code>assert_recognizes</code>, the hash is used to specify both the <code>:path</code> and the <code>:host</code> that the route should generate. The above test passes because the route changes the subdomain from _www_ to _admin_. (This only occurs in a single-subdomain route, of course.)
+
+h3. Use with RSpec
+
+The subdomain routing assertions won't help you much if you're using RSpec or some other testing framework. Your best bet is to wrap each assertion up in its own class, just as RSpec does with <code>assert_recognizes</code>  in its <code>route_for</code> method (check the rspec-rails source code). This shouldn't be too hard to do.
+
 
 Copyright (c) 2009 Matthew Hollingworth. See LICENSE for details.
