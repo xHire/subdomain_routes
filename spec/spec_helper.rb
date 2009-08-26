@@ -34,12 +34,13 @@ def recognize_path(request)
   ActionController::Routing::Routes.recognize_path(request.path, ActionController::Routing::Routes.extract_request_environment(request))
 end
 
-def in_controller_with_host(host, &block)
+def in_controller_with_host(host, port = 80, &block)
   spec = self
   Class.new(ActionView::TestCase::TestController) do
     include Spec::Matchers
   end.new.instance_eval do
     request.host = host
+    request.instance_eval{ @env['SERVER_PORT'] = port }
     copy_instance_variables_from(spec)
     instance_eval(&block)
   end
@@ -57,8 +58,9 @@ def in_object_with_host(host, &block)
   end
 end
 
-def with_host(host, &block)
-  in_controller_with_host(host, &block)
+def with_host(host, port = 80, &block)
+  in_controller_with_host(host, port, &block)
+  host = "#{host}:#{port}" unless port == 80
   in_object_with_host(host, &block)
 end
 

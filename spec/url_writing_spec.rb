@@ -161,6 +161,14 @@ describe "URL writing" do
     end
   end
 
+  it "should not change host with port" do
+    map_subdomain(:www1, :name => nil) { |map| map.resources :users }
+    with_host "www.example.com", 8080 do
+      users_url(:subdomain => :Www1).should == "http://www1.example.com:8080/users"
+      url_for(:controller => "users", :action => "index", :subdomains => [ "www1" ], :subdomain => :Www1).should == "http://www1.example.com:8080/users"
+    end
+  end
+
   context "when a :model subdomain is specified" do          
     before(:each) do
       map_subdomain(:model => :city) { |city| city.resources :events }

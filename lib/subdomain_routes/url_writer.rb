@@ -68,7 +68,7 @@ module SubdomainRoutes
     end
     
     def rewrite_with_subdomains(options)
-      host = options[:host] || @request.host
+      host = options[:host] || @request.host_with_port
       if options[:subdomains] && host.blank?
         raise HostNotSupplied, "Missing host to link to!"
       end
