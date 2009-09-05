@@ -62,11 +62,14 @@ describe "URL writing" do
           url_for(@path_options).should == "http://#{host}/users"
         end
       end
-
-      it "should preserve the port when forcing the host" do
-        with_host "other.example.com", :port => 8080 do
-          users_path.should == "http://#{host}:8080/users"
-          url_for(@path_options).should == "http://#{host}:8080/users"
+      
+      [ [ "port",     { :port     => 8080    }, "http://#{host}:8080/users" ],
+        [ "protocol", { :protocol => "https" }, "https://#{host}/users"     ] ].each do |variant, options, url|
+        it "should preserve the #{variant} when forcing the host" do
+          with_host "other.example.com", options do
+            users_path.should == url
+            url_for(@path_options).should == url
+          end
         end
       end
   
@@ -154,6 +157,16 @@ describe "URL writing" do
             end
           end
         end
+
+        it "should preserve the protocol when changing the host" do
+          [ [ subdomains.first, hosts.first, hosts.last ],
+            [ subdomains.last, hosts.last, hosts.first ] ].each do |subdomain, new_host, old_host|
+            with_host(old_host, :protocol => "https") do
+              items_path(:subdomain => subdomain).should == "https://#{new_host}/items"
+              url_for(@path_options.merge(:subdomain => subdomain)).should == "https://#{new_host}/items"
+            end
+          end
+        end
           
         it "should raise a routing error if the requested subdomain doesn't match" do
           [ [ hosts.first, hosts.last ],
@@ -206,13 +219,16 @@ describe "URL writing" do
            url_for(@path_options).should == "http://boston.example.com/events"
       end
     end
-
-    it "should preserve the port when forcing the host" do
-      with_host "example.com", :port => 8080 do
-         city_events_url(@boston).should == "http://boston.example.com:8080/events"
-        city_events_path(@boston).should == "http://boston.example.com:8080/events"
-            url_for(@url_options).should == "http://boston.example.com:8080/events"
-           url_for(@path_options).should == "http://boston.example.com:8080/events"
+    
+    [ [ "port",     { :port     => 8080    }, "http://boston.example.com:8080/events" ],
+      [ "protocol", { :protocol => "https" }, "https://boston.example.com/events"     ] ].each do |variant, options, url|
+      it "should preserve the #{variant} when forcing the host" do
+        with_host "example.com", options do
+           city_events_url(@boston).should == url
+          city_events_path(@boston).should == url
+              url_for(@url_options).should == url
+             url_for(@path_options).should == url
+        end
       end
     end
   

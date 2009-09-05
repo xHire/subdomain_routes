@@ -9,7 +9,7 @@ module SubdomainRoutes
       ActionController::Routing::Routes.subdomain_procs
     end
 
-    def rewrite_subdomain_options(options, host, port = nil)
+    def rewrite_subdomain_options(options, host, port = nil, protocol = nil)
       if subdomains = options[:subdomains]
         old_subdomain, domain = split_host(host)
         options_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_param.to_s.downcase : nil
@@ -36,7 +36,8 @@ module SubdomainRoutes
         unless new_subdomain == old_subdomain
           options[:only_path] = false
           options[:host] = [ new_subdomain, domain ].reject(&:blank?).join('.')
-          options[:port] = port if port
+          options[:port] ||= port if port
+          options[:protocol] ||= protocol if protocol
         end
         options.delete(:subdomain)
       end
@@ -51,12 +52,13 @@ module SubdomainRoutes
     end
 
     def url_for_with_subdomains(options)
-      host = options[:host] || default_url_options[:host]
-      port = options[:port] || default_url_options[:port]
+      host     = options[:host]     || default_url_options[:host]
+      port     = options[:port]     || default_url_options[:port]
+      protocol = options[:protocol] || default_url_options[:protocol]
       if options[:subdomains] && host.blank?
         raise HostNotSupplied, "Missing host to link to! Please provide :host parameter or set default_url_options[:host]"
       end
-      rewrite_subdomain_options(options, host, port)
+      rewrite_subdomain_options(options, host, port, protocol)
       url_for_without_subdomains(options)
     end
   end
@@ -70,12 +72,13 @@ module SubdomainRoutes
     end
     
     def rewrite_with_subdomains(options)
-      host = options[:host] || @request.host
-      port = options[:port] || (@request.port_string =~ /:(\d+)$/ ? $1.to_i : nil)
+      host     = options[:host]     || @request.host
+      protocol = options[:protocol] || (@request.ssl? ? @request.protocol : nil)
+      port     = options[:port]     || (@request.port_string =~ /:(\d+)$/ ? $1.to_i : nil)
       if options[:subdomains] && host.blank?
         raise HostNotSupplied, "Missing host to link to!"
       end
-      rewrite_subdomain_options(options, host, port)
+      rewrite_subdomain_options(options, host, port, protocol)
       rewrite_without_subdomains(options)
     end
   end

@@ -40,7 +40,10 @@ def in_controller_with_host(host, options = {}, &block)
     include Spec::Matchers
   end.new.instance_eval do
     request.host = host
-    request.instance_eval { @env['SERVER_PORT'] = options[:port] } if options[:port]
+    request.instance_eval do
+      @env.merge! 'HTTPS' => 'on','SERVER_PORT' => 443 if options[:protocol] =~ /^https(:\/\/)?$/
+      @env.merge! 'SERVER_PORT'=> options[:port] if options[:port]
+    end
     copy_instance_variables_from(spec)
     instance_eval(&block)
   end
@@ -53,7 +56,7 @@ def in_object_with_host(host, options = {}, &block)
     include ActionController::UrlWriter
   end.new.instance_eval do
     self.class.default_url_options = { :host => host }
-    self.class.default_url_options.merge! options.slice(:port)
+    self.class.default_url_options.merge! options.slice(:port, :protocol)
     copy_instance_variables_from(spec)
     instance_eval(&block)
   end
