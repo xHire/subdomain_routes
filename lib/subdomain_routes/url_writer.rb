@@ -9,7 +9,7 @@ module SubdomainRoutes
       ActionController::Routing::Routes.subdomain_procs
     end
 
-    def rewrite_subdomain_options(options, host)
+    def rewrite_subdomain_options(options, host, port = nil)
       if subdomains = options[:subdomains]
         old_subdomain, domain = split_host(host)
         options_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_param.to_s.downcase : nil
@@ -36,6 +36,7 @@ module SubdomainRoutes
         unless new_subdomain == old_subdomain
           options[:only_path] = false
           options[:host] = [ new_subdomain, domain ].reject(&:blank?).join('.')
+          options[:port] = port if port
         end
         options.delete(:subdomain)
       end
@@ -51,10 +52,11 @@ module SubdomainRoutes
 
     def url_for_with_subdomains(options)
       host = options[:host] || default_url_options[:host]
+      port = options[:port] || default_url_options[:port]
       if options[:subdomains] && host.blank?
         raise HostNotSupplied, "Missing host to link to! Please provide :host parameter or set default_url_options[:host]"
       end
-      rewrite_subdomain_options(options, host)
+      rewrite_subdomain_options(options, host, port)
       url_for_without_subdomains(options)
     end
   end
@@ -68,11 +70,12 @@ module SubdomainRoutes
     end
     
     def rewrite_with_subdomains(options)
-      host = options[:host] || @request.host_with_port
+      host = options[:host] || @request.host
+      port = options[:port] || (@request.port_string =~ /:(\d+)$/ ? $1.to_i : nil)
       if options[:subdomains] && host.blank?
         raise HostNotSupplied, "Missing host to link to!"
       end
-      rewrite_subdomain_options(options, host)
+      rewrite_subdomain_options(options, host, port)
       rewrite_without_subdomains(options)
     end
   end

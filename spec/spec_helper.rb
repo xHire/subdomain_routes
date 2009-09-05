@@ -34,34 +34,34 @@ def recognize_path(request)
   ActionController::Routing::Routes.recognize_path(request.path, ActionController::Routing::Routes.extract_request_environment(request))
 end
 
-def in_controller_with_host(host, port = 80, &block)
+def in_controller_with_host(host, options = {}, &block)
   spec = self
   Class.new(ActionView::TestCase::TestController) do
     include Spec::Matchers
   end.new.instance_eval do
     request.host = host
-    request.instance_eval{ @env['SERVER_PORT'] = port }
+    request.instance_eval { @env['SERVER_PORT'] = options[:port] } if options[:port]
     copy_instance_variables_from(spec)
     instance_eval(&block)
   end
 end
 
-def in_object_with_host(host, &block)
+def in_object_with_host(host, options = {}, &block)
   spec = self
   Class.new do
     include Spec::Matchers
     include ActionController::UrlWriter
   end.new.instance_eval do
     self.class.default_url_options = { :host => host }
+    self.class.default_url_options.merge! options.slice(:port)
     copy_instance_variables_from(spec)
     instance_eval(&block)
   end
 end
 
-def with_host(host, port = 80, &block)
-  in_controller_with_host(host, port, &block)
-  host = "#{host}:#{port}" unless port == 80
-  in_object_with_host(host, &block)
+def with_host(host, options = {}, &block)
+  in_controller_with_host(host, options.dup, &block)
+  in_object_with_host(host, options.dup, &block)
 end
 
 ActiveRecord::Base.class_eval do

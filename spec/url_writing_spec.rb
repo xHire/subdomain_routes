@@ -62,6 +62,13 @@ describe "URL writing" do
           url_for(@path_options).should == "http://#{host}/users"
         end
       end
+
+      it "should preserve the port when forcing the host" do
+        with_host "other.example.com", :port => 8080 do
+          users_path.should == "http://#{host}:8080/users"
+          url_for(@path_options).should == "http://#{host}:8080/users"
+        end
+      end
   
       context "and a subdomain different from the host subdomain is explicitly requested" do
         it "should change the host if the requested subdomain matches" do
@@ -137,6 +144,16 @@ describe "URL writing" do
             end
           end
         end
+
+        it "should preserve the port when changing the host" do
+          [ [ subdomains.first, hosts.first, hosts.last ],
+            [ subdomains.last, hosts.last, hosts.first ] ].each do |subdomain, new_host, old_host|
+            with_host(old_host, :port => 8080) do
+              items_path(:subdomain => subdomain).should == "http://#{new_host}:8080/items"
+              url_for(@path_options.merge(:subdomain => subdomain)).should == "http://#{new_host}:8080/items"
+            end
+          end
+        end
           
         it "should raise a routing error if the requested subdomain doesn't match" do
           [ [ hosts.first, hosts.last ],
@@ -161,14 +178,6 @@ describe "URL writing" do
     end
   end
 
-  it "should not change host with port" do
-    map_subdomain(:www1, :name => nil) { |map| map.resources :users }
-    with_host "www.example.com", 8080 do
-      users_url(:subdomain => :Www1).should == "http://www1.example.com:8080/users"
-      url_for(:controller => "users", :action => "index", :subdomains => [ "www1" ], :subdomain => :Www1).should == "http://www1.example.com:8080/users"
-    end
-  end
-
   context "when a :model subdomain is specified" do          
     before(:each) do
       map_subdomain(:model => :city) { |city| city.resources :events }
@@ -188,13 +197,22 @@ describe "URL writing" do
            url_for(@path_options).should == "/events"
       end
     end
-  
+    
     it "should force the host if the object has a different to_param from the current subdomain" do
       with_host "example.com" do
          city_events_url(@boston).should == "http://boston.example.com/events"
         city_events_path(@boston).should == "http://boston.example.com/events"
             url_for(@url_options).should == "http://boston.example.com/events"
            url_for(@path_options).should == "http://boston.example.com/events"
+      end
+    end
+
+    it "should preserve the port when forcing the host" do
+      with_host "example.com", :port => 8080 do
+         city_events_url(@boston).should == "http://boston.example.com:8080/events"
+        city_events_path(@boston).should == "http://boston.example.com:8080/events"
+            url_for(@url_options).should == "http://boston.example.com:8080/events"
+           url_for(@path_options).should == "http://boston.example.com:8080/events"
       end
     end
   
