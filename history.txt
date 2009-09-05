@@ -3,6 +3,7 @@ SubdomainRoutes Revision History
 Version 0.3.1
 * Fixed bug whereby port number was not preserved when a subdomain route changed
   the subdomain in the host (Matsumara Akihiro, Matthew Hollingworth).
+* Similarly, added fixes to preserve https protocol when host is changed.
 
 Version 0.3.0
 
