@@ -8,17 +8,17 @@ I've recently completed work on a subdomain library which fully incorporates sub
 
 h2. Installation
 
-The gem is called <code>SubdomainRoutes</code>, and is easy to install from GitHub (you only need to add GitHub as a source once):
+The gem is called <code>SubdomainRoutes</code>, and is easy to install from Gemcutter (you only need to add Gemcutter as a source once):
 
 <pre>
-gem sources -a http://gems.github.com
-sudo gem install mholling-subdomain_routes
+gem sources -a http://gemcutter.org
+sudo gem install subdomain_routes
 </pre>
 
 In your Rails app, make sure to specify the gem dependency in environment.rb:
 
 <pre>
-config.gem "mholling-subdomain_routes", :lib => "subdomain_routes", :source => "http://gems.github.com"
+config.gem "subdomain_routes", :source => "http://gemcutter.org"
 </pre>
 
 [ *UPDATE:* You can also install the gem as a plugin: <code>script/plugin install git://github.com/mholling/subdomain_routes.git</code> ]
