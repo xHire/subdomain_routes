@@ -1,14 +1,15 @@
 module SubdomainRoutes
-  def self.valid_subdomain?(subdomain)
-    subdomain.to_s =~ /^([a-z]|[a-z][a-z0-9]|[a-z]([a-z0-9]|\-[a-z0-9])*)$/
-  end
-
-  # # Alternatively, we use URI::parse instead. This gives more lenient subdomains however:
+  # # The following regexp is used to validate a subdomain format by default (but it's not very correct):
   # def self.valid_subdomain?(subdomain)
-  #   URI.parse "http://#{subdomain}.example.com"
-  # rescue URI::InvalidURIError
-  #   false
+  #   subdomain.to_s =~ /^([a-z]|[a-z][a-z0-9]|[a-z]([a-z0-9]|\-[a-z0-9])*)$/
   # end
+
+  # Alternatively, we use URI::parse instead. This gives more lenient subdomains however:
+  def self.valid_subdomain?(subdomain)
+    URI.parse "http://#{subdomain}.example.com"
+  rescue URI::InvalidURIError
+    false
+  end
     
   module Validations
     module ClassMethods

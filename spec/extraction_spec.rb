@@ -49,24 +49,24 @@ describe "subdomain extraction" do
   
     context "and multi-level subdomains are found" do
       before(:each) do
-        @host = "blah.www.example.com"
+        @host = "www.test.example.com"
       end
     
-      it "should raise an error" do
-        lambda { subdomain_for_host(@host) }.should raise_error(SubdomainRoutes::TooManySubdomains)
+      it "should find the subdomains (as one entity)" do
+        subdomain_for_host(@host).should == "www.test"
       end
           
-      it "should raise an error when generating URLs" do
+      it "should regenerate correct URLs with another subdomain" do
         map_subdomain(:admin) { |admin| admin.resources :users }
         with_host(@host) do
-          lambda { admin_users_path }.should raise_error(SubdomainRoutes::TooManySubdomains)
+          admin_users_path.should == "http://admin.example.com/users"
         end
       end
     
-      it "should raise an error when recognising URLs" do
+      it "should recognize all of them as a one entity" do
         request = ActionController::TestRequest.new
         request.host = @host
-        lambda { recognize_path(request) }.should raise_error(SubdomainRoutes::TooManySubdomains)
+        request.subdomain.should == "www.test"
       end
     end
   end
